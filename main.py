@@ -51,8 +51,21 @@ def press_key(key):
     body.send_keys(key)
     print(f"Sent key: {key}")
 
+def detect_close(driver):
+    seen_entries = set()
+    logs = driver.get_log('browser')
+    for entry in logs[-5:]:  # Only check the last 5 log lines
+            msg = entry['message']
+            if msg in seen_entries:
+                continue
+            seen_entries.add(msg)
+            if "Scripts may close only the windows that were opened by them." in msg:
+                print("Close attempt detected.")
+                return True
+    time.sleep(0.01)
+    return False
+
 try:
-    print("Listening for controller input. Press Ctrl+C to quit.")
     while True:
         for event in pygame.event.get():
             if event.type == pygame.JOYBUTTONDOWN:
@@ -60,7 +73,6 @@ try:
                     press_key(Keys.ENTER)
                 elif event.button == BUTTON_CIRCLE:
                     press_key(Keys.ESCAPE)
-
             elif event.type == pygame.JOYHATMOTION:
                 hat_x, hat_y = event.value
                 if hat_y == 1:
@@ -71,7 +83,9 @@ try:
                     press_key(Keys.ARROW_RIGHT)
                 elif hat_x == -1:
                     press_key(Keys.ARROW_LEFT)
-
+        if detect_close(driver):
+            driver.quit()
+            pygame.quit()
         time.sleep(0.05)
 
 except KeyboardInterrupt:
